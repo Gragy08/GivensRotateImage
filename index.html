@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTL Đại số tuyến tính - Phép quay Givens</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f4f9; 
+            padding: 20px; 
+        }
+        h1 { 
+            text-align: center; 
+            color: #333; 
+        }
+        .container { 
+            display: flex; 
+            gap: 30px; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+            margin-top: 30px; 
+        }
+        .box { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            width: 400px; 
+            text-align: center; 
+        }
+        .controls { 
+            margin: 20px 0; 
+        }
+        input[type="number"] { 
+            padding: 8px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            width: 60px; 
+        }
+        button { 
+            padding: 10px 20px; 
+            background-color: #007BFF; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        button:hover { 
+            background-color: #0056b3; 
+        }
+        img { 
+            max-width: 100%; 
+            height: auto; 
+            border: 1px dashed #ccc; 
+            margin-top: 10px; 
+            max-height: 300px; 
+            object-fit: contain; 
+        }
+        #status { 
+            font-weight: bold; 
+            color: #555; 
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Ứng dụng Phép quay Givens trong Xử lý ảnh</h1>
+
+    <div class="container">
+        <div class="box">
+            <h3>Ảnh gốc</h3>
+            <input type="file" id="inpFile" accept="image/*">
+            
+            <div class="controls">
+                <label>Góc quay (độ): </label>
+                <input type="number" id="inpAngle" value="45">
+            </div>
+
+            <button onclick="rotateImage()">Thực hiện Xoay</button>
+            <br><br>
+            <img id="previewImg" src="#" alt="Chưa chọn ảnh" style="display:none;">
+        </div>
+
+        <div class="box" style="text-align: center;">
+            <h3>Kết quả xử lý</h3>
+            <p id="status">Vui lòng chọn ảnh và nhấn xoay</p>
+            <img id="resultImg" src="#" alt="Kết quả" style="display:none;">
+        </div>
+    </div>
+
+    <script>
+        const inpFile = document.getElementById('inpFile');
+        const previewImg = document.getElementById('previewImg');
+        const resultImg = document.getElementById('resultImg');
+        const status = document.getElementById('status');
+
+        // Hiển thị ảnh xem trước
+        inpFile.onchange = evt => {
+            const [file] = inpFile.files;
+            if (file) {
+                previewImg.src = URL.createObjectURL(file);
+                previewImg.style.display = 'block';
+                resultImg.style.display = 'none';
+                status.innerText = "Sẵn sàng xoay";
+            }
+        }
+
+        async function rotateImage() {
+            if(inpFile.files.length === 0) {
+                alert("Bạn chưa chọn ảnh!"); return;
+            }
+
+            const angle = document.getElementById('inpAngle').value;
+            const formData = new FormData();
+            formData.append("file", inpFile.files[0]);
+            formData.append("angle", angle);
+
+            status.innerText = "Ảnh đang được xử lý...";
+            
+            try {
+                const response = await fetch('http://160.187.246.140:8001/api/rotate', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    resultImg.src = URL.createObjectURL(blob);
+                    resultImg.style.display = 'block';
+                    status.innerText = "Xử lý thành công!";
+                } else {
+                    status.innerText = "Lỗi xử lý từ Server.";
+                }
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Không thể kết nối đến Server.";
+            }
+        }
+    </script>
+</body>
+</html>
