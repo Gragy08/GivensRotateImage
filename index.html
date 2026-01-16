@@ -120,7 +120,7 @@
             status.innerText = "Ảnh đang được xử lý...";
             
             try {
-                const response = await fetch('http://160.187.246.140:8001/api/rotate', {
+                const response = await fetch('/api/rotate', {
                     method: 'POST',
                     body: formData
                 });
