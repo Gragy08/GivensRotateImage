@@ -1,19 +1,22 @@
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware 
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from rotation_logic import manual_givens_rotate
 from PIL import Image
 import io
 
 app = FastAPI()
 
-# CORS config
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def read_root():
+    return FileResponse("index.html")
 
 @app.post("/api/rotate")
 async def rotate_image(
