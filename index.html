@@ -10,16 +10,13 @@
             background-color: #f4f4f9; 
             padding: 20px; 
         }
-        h1 { 
-            text-align: center; 
-            color: #333; 
-        }
-        .container { 
-            display: flex; 
-            gap: 30px; 
-            justify-content: center; 
-            flex-wrap: wrap; 
-            margin-top: 30px; 
+        h1 { text-align: center; color: #333; }
+        .main-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
         }
         .box { 
             background: white; 
@@ -27,29 +24,44 @@
             border-radius: 10px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
             width: 400px; 
-            text-align: center; 
+            min-height: 400px;
         }
-        .controls { 
-            margin: 20px 0; 
+        .mode-selector {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            text-align: center;
         }
-        input[type="number"] { 
-            padding: 8px; 
-            border: 1px solid #ccc; 
-            border-radius: 4px; 
-            width: 60px; 
+        .mode-selector label {
+            margin: 0 10px;
+            cursor: pointer;
+            font-weight: bold;
         }
+        .control-group {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .hidden { display: none; }
+        
+        input[type="number"] { padding: 5px; width: 60px; }
+        input[type="range"] { vertical-align: middle; width: 60%; }
+        
         button { 
-            padding: 10px 20px; 
+            width: 100%;
+            padding: 12px; 
             background-color: #007BFF; 
             color: white; 
             border: none; 
             border-radius: 4px; 
             cursor: pointer; 
+            font-size: 16px;
             transition: 0.3s; 
+            margin-top: 10px;
         }
-        button:hover { 
-            background-color: #0056b3; 
-        }
+        button:hover { background-color: #0056b3; }
+        
         img { 
             max-width: 100%; 
             height: auto; 
@@ -57,46 +69,94 @@
             margin-top: 10px; 
             max-height: 300px; 
             object-fit: contain; 
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
         }
-        #status { 
-            font-weight: bold; 
-            color: #555; 
-        }
+        #status { font-weight: bold; color: #555; text-align: center; }
     </style>
 </head>
 <body>
 
-    <h1>Ứng dụng Phép quay Givens trong Xử lý ảnh</h1>
+    <h1>Ứng dụng Phép quay Givens (2D & 3D)</h1>
 
-    <div class="container">
+    <div class="main-container">
         <div class="box">
-            <h3>Ảnh gốc</h3>
-            <input type="file" id="inpFile" accept="image/*">
-            
-            <div class="controls">
-                <label>Góc quay (độ): </label>
-                <input type="number" id="inpAngle" value="45">
+            <h3>1. Chọn ảnh & Chế độ</h3>
+            <input type="file" id="inpFile" accept="image/*" style="margin-bottom: 15px;">
+
+            <div class="mode-selector">
+                <label>
+                    <input type="radio" name="mode" value="2d" checked onclick="toggleMode()"> Xoay 2D
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="3d" onclick="toggleMode()"> Xoay 3D
+                </label>
+            </div>
+
+            <div id="controls2D">
+                <div class="control-group">
+                    <label>Góc quay (độ): </label>
+                    <input type="number" id="inpAngle2D" value="45">
+                    <p style="font-size: 0.9em; color: #666;">*Xoay ảnh trên mặt phẳng (Trục Z)</p>
+                </div>
+            </div>
+
+            <div id="controls3D" class="hidden">
+                <div class="control-group">
+                    <label>Trục X (Gật đầu): <span id="lblX">0</span>°</label><br>
+                    <input type="range" id="inpAngleX" min="-180" max="180" value="0" oninput="updateLabel('lblX', this.value)">
+                </div>
+                <div class="control-group">
+                    <label>Trục Y (Lắc đầu): <span id="lblY">0</span>°</label><br>
+                    <input type="range" id="inpAngleY" min="-180" max="180" value="0" oninput="updateLabel('lblY', this.value)">
+                </div>
+                <div class="control-group">
+                    <label>Trục Z (Nghiêng): <span id="lblZ">0</span>°</label><br>
+                    <input type="range" id="inpAngleZ" min="-180" max="180" value="0" oninput="updateLabel('lblZ', this.value)">
+                </div>
             </div>
 
             <button onclick="rotateImage()">Thực hiện Xoay</button>
-            <br><br>
-            <img id="previewImg" src="#" alt="Chưa chọn ảnh" style="display:none;">
+            
+            <h3>Ảnh gốc (Preview)</h3>
+            <img id="previewImg" src="#" style="display:none;">
         </div>
 
-        <div class="box" style="text-align: center;">
-            <h3>Kết quả xử lý</h3>
-            <p id="status">Vui lòng chọn ảnh và nhấn xoay</p>
-            <img id="resultImg" src="#" alt="Kết quả" style="display:none;">
+        <div class="box">
+            <h3>2. Kết quả xử lý</h3>
+            <p id="status">Vui lòng chọn ảnh và nhấn nút xoay.</p>
+            <img id="resultImg" src="#" style="display:none;">
         </div>
     </div>
 
     <script>
+        // Hàm cập nhật số hiển thị bên cạnh thanh trượt
+        function updateLabel(id, val) { 
+            document.getElementById(id).innerText = val; 
+        }
+
+        // Hàm chuyển đổi giao diện 2D/3D
+        function toggleMode() {
+            const is2D = document.querySelector('input[name="mode"]:checked').value === '2d';
+            const div2D = document.getElementById('controls2D');
+            const div3D = document.getElementById('controls3D');
+
+            if (is2D) {
+                div2D.classList.remove('hidden');
+                div3D.classList.add('hidden');
+            } else {
+                div2D.classList.add('hidden');
+                div3D.classList.remove('hidden');
+            }
+        }
+
+        // Xử lý xem trước ảnh
         const inpFile = document.getElementById('inpFile');
         const previewImg = document.getElementById('previewImg');
         const resultImg = document.getElementById('resultImg');
         const status = document.getElementById('status');
 
-        // Hiển thị ảnh xem trước
         inpFile.onchange = evt => {
             const [file] = inpFile.files;
             if (file) {
@@ -107,19 +167,42 @@
             }
         }
 
+        // Hàm Gửi dữ liệu về Server
         async function rotateImage() {
             if(inpFile.files.length === 0) {
                 alert("Bạn chưa chọn ảnh!"); return;
             }
 
-            const angle = document.getElementById('inpAngle').value;
+            // 1. Lấy chế độ đang chọn
+            const is2D = document.querySelector('input[name="mode"]:checked').value === '2d';
+            
+            // 2. Chuẩn bị dữ liệu góc quay
+            let ax = 0, ay = 0, az = 0;
+
+            if (is2D) {
+                // Nếu 2D: Lấy góc từ ô nhập liệu 2D, gán cho trục Z (trục xoay phẳng), X và Y bằng 0
+                az = document.getElementById('inpAngle2D').value;
+            } else {
+                // Nếu 3D: Lấy từ 3 thanh trượt
+                ax = document.getElementById('inpAngleX').value;
+                ay = document.getElementById('inpAngleY').value;
+                az = document.getElementById('inpAngleZ').value;
+            }
+
+            status.innerText = "Đang xử lý trên Server (Mode " + (is2D ? "2D" : "3D") + ")...";
+
+            // 3. Đóng gói FormData
             const formData = new FormData();
             formData.append("file", inpFile.files[0]);
-            formData.append("angle", angle);
-
-            status.innerText = "Ảnh đang được xử lý...";
             
+            // Backend mới của chúng ta nhận angle_x, angle_y, angle_z
+            // (Kể cả 2D cũng gửi 3 tham số này, với x=0, y=0)
+            formData.append("angle_x", ax);
+            formData.append("angle_y", ay);
+            formData.append("angle_z", az);
+
             try {
+                // Gọi API (Đường dẫn tương đối)
                 const response = await fetch('/api/rotate', {
                     method: 'POST',
                     body: formData
@@ -127,15 +210,17 @@
 
                 if (response.ok) {
                     const blob = await response.blob();
-                    resultImg.src = URL.createObjectURL(blob);
+                    const url = URL.createObjectURL(blob);
+                    resultImg.src = url;
                     resultImg.style.display = 'block';
                     status.innerText = "Xử lý thành công!";
                 } else {
-                    status.innerText = "Lỗi xử lý từ Server.";
+                    status.innerText = "Lỗi Server!";
+                    console.error(await response.text());
                 }
-            } catch (err) {
-                console.error(err);
-                status.innerText = "Không thể kết nối đến Server.";
+            } catch (error) {
+                console.error(error);
+                status.innerText = "Lỗi kết nối!";
             }
         }
     </script>
