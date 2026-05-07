@@ -78,7 +78,7 @@
 </head>
 <body>
 
-    <h1>Ứng dụng Phép quay Givens (2D & 3D)</h1>
+    <h1>Ứng dụng Phép quay Givens</h1>
 
     <div class="main-container">
         <div class="box">
@@ -91,6 +91,9 @@
                 </label>
                 <label>
                     <input type="radio" name="mode" value="3d" onclick="toggleMode()"> Xoay 3D
+                </label>
+                <label>
+                    <input type="radio" name="mode" value="nd" onclick="toggleMode()"> Xoay n-D
                 </label>
             </div>
 
@@ -117,6 +120,26 @@
                 </div>
             </div>
 
+            <div id="controlsND" class="hidden">
+                <div class="control-group">
+                    <label>Số chiều (n): </label>
+                    <input type="number" id="inpDimN" value="4" min="4">
+                    <p style="font-size: 0.9em; color: #666;">*Không gian từ 4 chiều trở lên</p>
+                </div>
+                <div class="control-group">
+                    <label>Mặt phẳng xoay (Trục i, Trục j): </label><br>
+                    <span style="display:inline-block; margin-top:5px;">
+                        Trục i: <input type="number" id="inpAxisI" value="1" min="1" style="width: 40px; margin-right: 10px;">
+                        Trục j: <input type="number" id="inpAxisJ" value="2" min="1" style="width: 40px;">
+                    </span>
+                    <p style="font-size: 0.85em; color: #666;">(i và j phải nhỏ hơn hoặc bằng n)</p>
+                </div>
+                <div class="control-group">
+                    <label>Góc quay (độ): </label>
+                    <input type="number" id="inpAngleND" value="45">
+                </div>
+            </div>
+
             <button onclick="rotateImage()">Thực hiện Xoay</button>
             
             <h3>Ảnh gốc (Preview)</h3>
@@ -131,27 +154,19 @@
     </div>
 
     <script>
-        // Hàm cập nhật số hiển thị bên cạnh thanh trượt
         function updateLabel(id, val) { 
             document.getElementById(id).innerText = val; 
         }
 
-        // Hàm chuyển đổi giao diện 2D/3D
+        // Cập nhật hàm chuyển đổi chế độ để hỗ trợ n-D
         function toggleMode() {
-            const is2D = document.querySelector('input[name="mode"]:checked').value === '2d';
-            const div2D = document.getElementById('controls2D');
-            const div3D = document.getElementById('controls3D');
-
-            if (is2D) {
-                div2D.classList.remove('hidden');
-                div3D.classList.add('hidden');
-            } else {
-                div2D.classList.add('hidden');
-                div3D.classList.remove('hidden');
-            }
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            
+            document.getElementById('controls2D').classList.toggle('hidden', mode !== '2d');
+            document.getElementById('controls3D').classList.toggle('hidden', mode !== '3d');
+            document.getElementById('controlsND').classList.toggle('hidden', mode !== 'nd');
         }
 
-        // Xử lý xem trước ảnh
         const inpFile = document.getElementById('inpFile');
         const previewImg = document.getElementById('previewImg');
         const resultImg = document.getElementById('resultImg');
@@ -167,42 +182,47 @@
             }
         }
 
-        // Hàm Gửi dữ liệu về Server
         async function rotateImage() {
             if(inpFile.files.length === 0) {
                 alert("Bạn chưa chọn ảnh!"); return;
             }
 
-            // 1. Lấy chế độ đang chọn
-            const is2D = document.querySelector('input[name="mode"]:checked').value === '2d';
-            
-            // 2. Chuẩn bị dữ liệu góc quay
-            let ax = 0, ay = 0, az = 0;
-
-            if (is2D) {
-                // Nếu 2D: Lấy góc từ ô nhập liệu 2D, gán cho trục Z (trục xoay phẳng), X và Y bằng 0
-                az = document.getElementById('inpAngle2D').value;
-            } else {
-                // Nếu 3D: Lấy từ 3 thanh trượt
-                ax = document.getElementById('inpAngleX').value;
-                ay = document.getElementById('inpAngleY').value;
-                az = document.getElementById('inpAngleZ').value;
-            }
-
-            status.innerText = "Đang xử lý trên Server (Mode " + (is2D ? "2D" : "3D") + ")...";
-
-            // 3. Đóng gói FormData
+            const mode = document.querySelector('input[name="mode"]:checked').value;
             const formData = new FormData();
             formData.append("file", inpFile.files[0]);
-            
-            // Backend mới của chúng ta nhận angle_x, angle_y, angle_z
-            // (Kể cả 2D cũng gửi 3 tham số này, với x=0, y=0)
-            formData.append("angle_x", ax);
-            formData.append("angle_y", ay);
-            formData.append("angle_z", az);
+            formData.append("mode", mode); // Gửi thêm mode để Backend dễ phân nhánh
+
+            // Đóng gói dữ liệu tùy theo chế độ
+            if (mode === '2d') {
+                formData.append("angle_z", document.getElementById('inpAngle2D').value);
+                formData.append("angle_x", 0);
+                formData.append("angle_y", 0);
+            } 
+            else if (mode === '3d') {
+                formData.append("angle_x", document.getElementById('inpAngleX').value);
+                formData.append("angle_y", document.getElementById('inpAngleY').value);
+                formData.append("angle_z", document.getElementById('inpAngleZ').value);
+            }
+            else if (mode === 'nd') {
+                const n = parseInt(document.getElementById('inpDimN').value);
+                const i = parseInt(document.getElementById('inpAxisI').value);
+                const j = parseInt(document.getElementById('inpAxisJ').value);
+                
+                // Validate logic cơ bản
+                if (i > n || j > n || i === j) {
+                    alert("Trục i và trục j phải khác nhau và nhỏ hơn hoặc bằng n!");
+                    return;
+                }
+
+                formData.append("n_dims", n);
+                formData.append("axis_i", i);
+                formData.append("axis_j", j);
+                formData.append("angle_nd", document.getElementById('inpAngleND').value);
+            }
+
+            status.innerText = `Đang xử lý trên Server (Mode ${mode.toUpperCase()})...`;
 
             try {
-                // Gọi API (Đường dẫn tương đối)
                 const response = await fetch('/api/rotate', {
                     method: 'POST',
                     body: formData
